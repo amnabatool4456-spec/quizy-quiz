@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bestie Bond Quiz</title>
+    <style>
+        /* --- 🎨 Aesthetic & Layout --- */
+        :root {
+            --color-bg-dark: #1F2833; /* Deep Teal/Dark Navy */
+            --color-bg-light: #2C3847; /* Lighter Teal */
+            --color-accent: #E0B989; /* Soft Matte Gold/Cream */
+            --color-text-light: #FAFAFA;
+            --color-text-dark: #151515;
+            --font-primary: 'Georgia', 'Playfair Display', serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--color-bg-dark);
+            font-family: var(--font-primary);
+            color: var(--color-accent);
+            overflow: hidden;
+            /* Subtle Pattern Background */
+            background-image: radial-gradient(var(--color-bg-light) 1px, transparent 1px),
+                              radial-gradient(var(--color-bg-light) 1px, var(--color-bg-dark) 1px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            perspective: 1000px; /* For 3D transformations */
+        }
+
+        /* --- Quiz Card 3D Styling --- */
+        .quiz-card {
+            width: 90%;
+            max-width: 700px;
+            min-height: 400px;
+            padding: 40px;
+            background-color: var(--color-bg-dark);
+            border: 2px solid var(--color-accent);
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), /* Stronger shadow */
+                        0 0 20px rgba(224, 185, 137, 0.4); /* Soft accent glow */
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s;
+            text-align: center;
+        }
+
+        .quiz-card.exit {
+            transform: rotateY(-90deg) scale(0.8);
+            opacity: 0;
+        }
+
+        .quiz-card.enter {
+            transform: rotateY(0deg) scale(1);
+            opacity: 1;
+        }
+
+        /* --- Character and Header --- */
+        #bestie-character {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        .bounce { animation: bounce 0.6s 1; }
+        .wave { animation: wave 0.8s 1; }
+        .heart-pop { animation: heartPop 0.5s 1; }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes wave { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-10deg); } }
+        @keyframes heartPop { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1.2); } }
+
+        /* --- Question and Options --- */
+        #question-text {
+            font-size: 1.8em;
+            color: var(--color-text-light);
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .option-button {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-accent);
+            color: var(--color-text-light);
+            text-align: left;
+            font-size: 1.1em;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease, transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #3d5066;
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-button.correct { background-color: #4a6c4c; border-color: #6aa84f; color: white; }
+        .option-button.incorrect { background-color: #8c4c4c; border-color: #b97d7d; color: white; }
+        .option-button:disabled { cursor: default; opacity: 0.7; }
+
+        /* --- Emotional Message Display --- */
+        #emotional-message-box {
+            position: relative;
+            min-height: 80px;
+            margin-top: 30px;
+            padding: 15px;
+            border-top: 2px dashed var(--color-accent);
+            opacity: 0;
+            transition: opacity 1s ease-in-out, transform 1s ease-out;
+            transform: translateY(20px);
+            font-style: italic;
+            font-size: 1.2em;
+            color: var(--color-accent);
+            text-shadow: 0 0 5px rgba(224, 185, 137, 0.6);
+        }
+
+        #emotional-message-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Next Button --- */
+        #next-button {
+            margin-top: 25px;
+            padding: 10px 30px;
+            background: var(--color-accent);
+            color: var(--color-text-dark);
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #next-button:hover {
+            background: #f7e2c9;
+            transform: scale(1.05);
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 768px) {
+            .quiz-card { padding: 25px; }
+            #question-text { font-size: 1.5em; }
+            .option-button { font-size: 1em; padding: 12px 15px; }
+            #bestie-character { font-size: 2.5em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="quiz-container" class="quiz-card enter">
+        <div id="bestie-character">😊</div> <h2 id="question-number" style="color: var(--color-accent); font-weight: 300;"></h2>
+        <h1 id="question-text"></h1>
+        
+        <div id="options-container">
+            </div>
+
+        <div id="emotional-message-box">
+            </div>
+
+        <button id="next-button" onclick="handleNext()">NEXT MEMORY 💖</button>
+    </div>
+
+    <script>
+        // --- 🧠 Quiz Data and State ---
+
+        const questions = [
+            {
+                question: "What's the one memory that always makes me smile when I'm having a bad day?",
+                options: ["That time we got soaked in the rain laughing.", "Our first road trip adventure.", "The inside joke we share about a third person.", "Watching a specific movie together."],
+                correctAnswer: "That time we got soaked in the rain laughing.",
+                message: "You know how much I cherish those simple, unscripted moments. True joy isn't planned, it's shared with you. 🌧️"
+            },
+            {
+                question: "What quality do I rely on most when I turn to you for advice?",
+                options: ["Your brutal honesty.", "Your calm perspective.", "Your ability to make things funny.", "Your unwavering loyalty."],
+                correctAnswer: "Your calm perspective.",
+                message: "When my world is spinning, your steady perspective grounds me. You're the anchor I always needed. ⚓"
+            },
+            {
+                question: "If I ever went missing, where is the first non-obvious place you'd look for me?",
+                options: ["The nearest coffee shop with a good book.", "My childhood favorite park bench.", "In a hidden aisle at a bookstore.", "The quietest place on the campus/office roof."],
+                correctAnswer: "In a hidden aisle at a bookstore.",
+                message: "Only you know that my escape isn't always loud; sometimes, I just need to hide among the stories. Thanks for knowing my quiet side. 📚"
+            },
+            {
+                question: "What's the one thing I secretly admire about our friendship?",
+                options: ["That we never run out of things to talk about.", "That we can sit in silence without it being awkward.", "That we forgive each other instantly.", "That we push each other to be better."],
+                correctAnswer: "That we can sit in silence without it being awkward.",
+                message: "Silence with you feels like home. It means I don't have to perform or pretend; I can just be me. That’s pure trust. 🏡"
+            },
+            {
+                question: "What is my biggest, most ridiculous fear that only you know about?",
+                options: ["Spiders.", "Deep water.", "Public speaking.", "Answering unknown calls."],
+                correctAnswer: "Answering unknown calls.",
+                message: "The way you gently mock me for that fear, but also handle those calls for me sometimes? That’s dedication. 😂"
+            },
+            {
+                question: "Which of these traits defines my personal growth the most since we met?",
+                options: ["Becoming more confident.", "Becoming more patient.", "Becoming less critical of others.", "Becoming more open about my feelings."],
+                correctAnswer: "Becoming more open about my feelings.",
+                message: "You taught me that vulnerability isn't a weakness, it's a superpower. I owe so much of this growth to your non-judgmental ears. 🔓"
+            },
+            {
+                question: "If I ever achieve a big dream, what would my first reaction be to you?",
+                options: ["Jumping up and down screaming.", "A silent, meaningful hug.", "Telling you, 'We did it!'", "Buying you a surprise gift."],
+                correctAnswer: "A silent, meaningful hug.",
+                message: "No words needed. A hug says it all: thank you for believing in me even when I couldn't, and let's go celebrate! 🫂"
+            },
+            {
+                question: "Which of our routines makes me feel most connected to you?",
+                options: ["Our late-night video calls.", "Our weekend lunch spot visits.", "Our shared Spotify playlist updates.", "Our marathon gaming sessions."],
+                correctAnswer: "Our late-night video calls.",
+                message: "Those late-night calls, when the world is quiet and we can talk about anything. That's when I feel the deepest bond with you. 🌙"
+            },
+            {
+                question: "What kind of small gesture from you means the absolute world to me?",
+                options: ["Sending me a funny meme out of the blue.", "Making me my favorite coffee/tea.", "A random text saying, 'Thinking of you.'", "Defending me when I'm not around."],
+                correctAnswer: "A random text saying, 'Thinking of you.'",
+                message: "That tiny text is a reminder that even in the chaos of life, I matter to someone. It’s a moment of peace, thanks to you. 🕊️"
+            },
+            {
+                question: "When I'm having a bad day, what's the one thing I definitely *don't* want to hear?",
+                options: ["'It'll be fine.'", "'Have you tried X, Y, Z?'", "'Don't worry about it.'", "'It could be worse.'"],
+                correctAnswer: "'It could be worse.'",
+                message: "Thank you for knowing I need validation, not comparison. You always let me feel what I need to feel, and that’s true support. 🙏"
+            },
+            {
+                question: "What's my biggest struggle that you help me overcome, even unknowingly?",
+                options: ["Self-doubt.", "Procrastination.", "Overthinking.", "Staying organized."],
+                correctAnswer: "Overthinking.",
+                message: "You distract me from the noise in my head just by existing. You're the quiet constant that helps me trust myself more. 🧘‍♂️"
+            },
+            {
+                question: "Which song reminds me most of our future together?",
+                options: ["An upbeat travel anthem.", "A nostalgic 90s hit.", "A slow, meaningful acoustic track.", "A funny, slightly embarrassing pop song."],
+                correctAnswer: "An upbeat travel anthem.",
+                message: "I see us conquering the world together, full of energy and bad dancing. Our adventure is just starting! 🌍"
+            },
+            {
+                question: "What is my personal 'love language' that you speak fluently?",
+                options: ["Words of Affirmation.", "Acts of Service.", "Quality Time.", "Physical Touch."],
+                correctAnswer: "Quality Time.",
+                message: "You never cancel, you always show up fully, and you put your phone away. That is the purest form of love and respect. Thank you for your time. ⏰"
+            },
+            {
+                question: "What is the most invaluable gift you've given me?",
+                options: ["A physical object I use every day.", "A moment of brutal honesty.", "A great piece of career advice.", "The courage to try something new."],
+                correctAnswer: "The courage to try something new.",
+                message: "You push me gently outside my comfort zone and catch me when I stumble. Your faith in me is the greatest gift of all. 🎁"
+            },
+            {
+                question: "If our friendship were a gemstone, what would it be?",
+                options: ["Diamond (Unbreakable).", "Emerald (Rare and precious).", "Opal (Colorful and unique).", "Amethyst (Calm and protective)."],
+                correctAnswer: "Amethyst (Calm and protective).",
+                message: "You bring me peace, safety, and understanding. Our friendship is my sanctuary. Thank you for protecting my heart. 💜"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // --- DOM Elements ---
+        const quizCard = document.getElementById('quiz-container');
+        const questionText = document.getElementById('question-text');
+        const questionNumber = document.getElementById('question-number');
+        const optionsContainer = document.getElementById('options-container');
+        const messageBox = document.getElementById('emotional-message-box');
+        const nextButton = document.getElementById('next-button');
+        const bestieCharacter = document.getElementById('bestie-character');
+
+        // --- ⚙️ Core Functions ---
+
+        function loadQuestion(index) {
+            if (index >= questions.length) {
+                showFinalScreen();
+                return;
+            }
+
+            const q = questions[index];
+            const qNum = index + 1;
+
+            // Reset UI
+            optionsContainer.innerHTML = '';
+            messageBox.classList.remove('show');
+            nextButton.style.display = 'none';
+            messageBox.textContent = '';
+            bestieCharacter.textContent = '😊';
+            
+            // Set Question Text
+            questionNumber.textContent = `Memory Test ${qNum} of ${questions.length}`;
+            questionText.textContent = q.question;
+
+            // Create Options
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = option;
+                button.setAttribute('data-value', option);
+                button.onclick = () => handleAnswer(button, q);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function handleAnswer(selectedButton, q) {
+            // Disable all options
+            document.querySelectorAll('.option-button').forEach(btn => btn.disabled = true);
+
+            const selectedAnswer = selectedButton.getAttribute('data-value');
+            const isCorrect = selectedAnswer === q.correctAnswer;
+
+            // Apply correct/incorrect styling and update score
+            if (isCorrect) {
+                selectedButton.classList.add('correct');
+                score++;
+                bestieCharacter.textContent = '😁';
+                animateCharacter('bounce');
+            } else {
+                selectedButton.classList.add('incorrect');
+                bestieCharacter.textContent = '🙁';
+                animateCharacter('wave');
+                
+                // Highlight the correct answer
+                document.querySelectorAll('.option-button').forEach(btn => {
+                    if (btn.getAttribute('data-value') === q.correctAnswer) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            // Reveal Emotional Message
+            messageBox.textContent = q.message;
+            messageBox.classList.add('show');
+            
+            // Show Next button
+            nextButton.style.display = 'block';
+        }
+
+        function handleNext() {
+            // Add exit animation
+            quizCard.classList.remove('enter');
+            quizCard.classList.add('exit');
+            
+            // Wait for animation to finish before loading next question
+            setTimeout(() => {
+                currentQuestionIndex++;
+                quizCard.classList.remove('exit');
+                quizCard.classList.add('enter'); // Prepare for next entry animation
+                loadQuestion(currentQuestionIndex);
+            }, 500); // Half of the CSS transition time
+        }
+
+        function animateCharacter(animationClass) {
+            bestieCharacter.classList.remove('bounce', 'wave', 'heart-pop');
+            bestieCharacter.classList.add(animationClass);
+            setTimeout(() => {
+                bestieCharacter.classList.remove(animationClass);
+            }, 800);
+        }
+
+        function showFinalScreen() {
+            // Final screen UI setup
+            quizCard.innerHTML = `
+                <div id="bestie-character" style="font-size: 4em; transition: none;">🥳</div>
+                <h1 style="color: var(--color-accent); font-size: 2.5em; margin-top: 15px;">QUIZ COMPLETE!</h1>
+                <p style="font-size: 1.5em; color: var(--color-text-light); margin-bottom: 30px;">
+                    You scored ${score} out of ${questions.length}.
+                </p>
+                <div id="final-message-reveal" style="padding: 20px; border: 2px solid #ff44aa; border-radius: 10px; background: rgba(255, 68, 170, 0.1);">
+                    <h3 style="color: #ff44aa; margin-bottom: 10px; cursor: pointer;" onclick="revealFinalMessage(this)">
+                        Click the '💖' to unlock the final message...
+                    </h3>
+                    <div style="font-size: 3em; cursor: pointer; display: inline-block;" onclick="revealFinalMessage(this)">
+                        💖
+                    </div>
+                    <p id="final-hidden-text" style="font-size: 1.6em; color: #ff44aa; margin-top: 20px; opacity: 0; transition: opacity 2s ease-in;"></p>
+                </div>
+            `;
+        }
+
+        function revealFinalMessage(element) {
+            const finalHiddenText = document.getElementById('final-hidden-text');
+            const charContainer = document.getElementById('bestie-character');
+            
+            if (finalHiddenText.style.opacity === '0') {
+                 // Trigger sparkle/heart pop effect
+                charContainer.textContent = '🥰';
+                charContainer.classList.add('heart-pop');
+                
+                finalHiddenText.textContent = "My dearest bestie, your answers prove you don't just know me, you *get* me. Every shared moment is a treasure. Thank you for being my constant. I cherish you deeply.";
+                finalHiddenText.style.opacity = 1;
+                element.style.display = 'none'; // Hide the instruction
+            }
+        }
+
+        // --- 🚀 Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQuestion(currentQuestionIndex);
+            animateCharacter('wave');
+        });
+    </script>
+</body>
+</html>
